@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import '../Style/Login.css'; // Import the CSS file
 import { redirect } from 'react-router-dom';
+import { useEffect } from 'react';
+import jwtDecode from "jwt-decode";
 
 const LoginForm = () => {
     const [email, setEmail] = useState('');
@@ -11,6 +13,48 @@ const LoginForm = () => {
     const [department, setDepartment] = useState('');
     const [fullname, setFullName] = useState('');
     const [showForgotPassword, setShowForgotPassword] = useState(false);
+
+    function handleCallbackResponse(response){
+        console.log("encodede JWT ID token: "+response);
+        const userObject = jwtDecode(response.credential, { algorithm: 'RS256' });
+        console.log(userObject);
+        const { name, email } = userObject; // Assuming 'name' is part of the user information
+        // Send the user's name and other details to your server
+        fetch('http://localhost:5000/googleSignIn', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name, email }),
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log('User data stored successfully');
+            } else {
+                console.error('Failed to store user data:', response.statusText);
+            }
+        })
+        .catch(error => {
+            console.error('Error storing user data:', error);
+        });
+    }
+
+    
+      useEffect(()=>{
+        google.accounts.id.initialize({
+          client_id:"199415080611-fl5dm04msdlivid1257gu4c7njj3tq8u.apps.googleusercontent.com",
+          callback: handleCallbackResponse
+        });
+        google.accounts.id.renderButton(
+          document.getElementById("signInDiv"),
+          {theme:"outline", size: "large"}
+        );
+        
+      },[]); 
+    
+    
+
+
 
     const handleEmailChange = (e) => {
         setEmail(e.target.value);
@@ -278,9 +322,7 @@ const LoginForm = () => {
                     />
 
                     <div style={{ display: 'flex', alignItems: 'center', paddingBottom: '80px' }}>
-                        <img src='https://cdn.discordapp.com/attachments/1205044912400371715/1207606690388905984/Google_Icons-09-512.png?ex=65e0425f&is=65cdcd5f&hm=e48c91d65b1ac80d51593a4fb80e7c5ba36c1d60c23f815a34c8b52836afa484&' alt="Image description" style={{ width: '45%', height: 'auto', paddingRight: '0px', paddingLeft: '40px' }} />
-                        <div style={{ borderLeft: '2px solid white', height: '40px', margin: '0 20px ' }}></div>
-                        <img src='https://cdn.discordapp.com/attachments/1205756212445192263/1207609856513679431/image_5.png?ex=65e04552&is=65cdd052&hm=0d052c3aebd7b7df75f5f65ad8532f9fdf8f665d78f4ca2c39aa02d6522862e9&' alt="Image description" style={{ width: '25%', height: 'auto', }}></img>
+                              <div id='signInDiv'></div>
                     </div>
                 </div>
             </div>

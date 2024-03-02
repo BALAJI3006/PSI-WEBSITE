@@ -12,7 +12,10 @@ import Login from './pages/Login';
 import Reset from './pages/ResetPassword';
 import Forgot from './pages/ForgotPassword';
 
+// import google from "google";
+
 export default function App() {
+
   return (
     <div>
       <BrowserRouter>

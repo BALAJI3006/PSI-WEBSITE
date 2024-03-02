@@ -14,7 +14,7 @@ const ContactUs = () => {
     };
 
     return (
-        <div className="app">
+        <div className="appDash">
             <NavBar />
 
             <div className='mainpart'>
