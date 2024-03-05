@@ -1,61 +1,29 @@
-import React, { useState } from 'react';
+
+import React, { createContext, useState } from 'react';
 import '../Style/Login.css'; // Import the CSS file
 import { redirect } from 'react-router-dom';
 import { useEffect } from 'react';
 import jwtDecode from "jwt-decode";
+import { Link } from 'react-router-dom';
+import CryptoJS from 'crypto-js';
+// import { google } from 'google-sign-in-library'; 
+import { useContext } from "react";
+
+import axios from "axios";
 
 const LoginForm = () => {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const [otp, setOTP] = useState();
+    const [email, setEmail] = useState(localStorage.getItem('registeredEmail') || '');
+    // const storedPassword = localStorage.getItem('registeredPassword');
+    // const decryptedPassword = storedPassword ? CryptoJS.AES.decrypt(storedPassword, 'secretKey').toString(CryptoJS.enc.Utf8) : '';
+    const [password, setPassword] = useState(localStorage.getItem('registeredPassword') || '');
     const [confirmpassword, setConfirmPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);
+    const [fullname, setFullName] = useState('');
     const [showRegister, setShowRegister] = useState(false);
     const [department, setDepartment] = useState('');
-    const [fullname, setFullName] = useState('');
-    const [showForgotPassword, setShowForgotPassword] = useState(false);
-
-    function handleCallbackResponse(response){
-        console.log("encodede JWT ID token: "+response);
-        const userObject = jwtDecode(response.credential, { algorithm: 'RS256' });
-        console.log(userObject);
-        const { name, email } = userObject; // Assuming 'name' is part of the user information
-        // Send the user's name and other details to your server
-        fetch('http://localhost:5000/googleSignIn', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ name, email }),
-        })
-        .then(response => {
-            if (response.ok) {
-                console.log('User data stored successfully');
-            } else {
-                console.error('Failed to store user data:', response.statusText);
-            }
-        })
-        .catch(error => {
-            console.error('Error storing user data:', error);
-        });
-    }
-
-    
-      useEffect(()=>{
-        google.accounts.id.initialize({
-          client_id:"199415080611-fl5dm04msdlivid1257gu4c7njj3tq8u.apps.googleusercontent.com",
-          callback: handleCallbackResponse
-        });
-        google.accounts.id.renderButton(
-          document.getElementById("signInDiv"),
-          {theme:"outline", size: "large"}
-        );
-        
-      },[]); 
-    
-    
-
-
-
+   
+  
     const handleEmailChange = (e) => {
         setEmail(e.target.value);
     };
@@ -68,9 +36,105 @@ const LoginForm = () => {
         setRememberMe(!rememberMe);
     };
 
+    const handleToggleRegister = () => {
+        setShowRegister((prevShowRegister) => !prevShowRegister);
+    };
+
+    const handleFullNameChange = (e) => {
+        setFullName(e.target.value);
+    };
+
+    const handleconfirmpasswordChange = (e) => {
+        setConfirmPassword(e.target.value);
+    };
+    
+    const handleDepartmentChange = (e) => {
+        setDepartment(e.target.value);
+    };
+    
+    // const nagigateToOtp = () => {
+    //     if (email) {
+    //         const OTP = Math.floor(Math.random() * 9000 + 1000);
+    //         console.log(OTP);
+    //         setOTP(OTP);
+    
+    //         fetch("http://localhost:5000/send_recovery_email", {
+    //             method: 'POST',
+    //             headers: {
+    //                 'Content-Type': 'application/json'
+    //             },
+    //             body: JSON.stringify({
+    //                 OTP,
+    //                 recipient_email: email
+    //             })
+    //         })
+    //         .then(response => {
+    //             if (response.ok) {
+    //                 window.location.href = '/otp';
+    //                 console.log('Mail sent successfully:', response.json());
+    //             } else {
+    //                 console.error('Failed to send mail:', response.statusText);
+    //             }
+    //         })
+    //         .catch(error => console.error("Error sending OTP:", error));
+    //     } else {
+    //         alert("Please enter your email");
+    //     }
+    // };
+
+    const navigateToReset = () => {
+        // Check if email is provided
+        if (email) {
+            // Navigate to reset page with email as state
+            return <Link to={{ pathname: '/reset', state: { email } }} />;
+        } else {
+            alert('Please enter your email');
+        }
+    };
+
+    
+
+    const handleCallbackResponse = (response) => {
+        console.log("encodede JWT ID token: " + response);
+        const userObject = jwtDecode(response.credential, { algorithm: 'RS256' });
+        console.log(userObject);
+        const { name, email } = userObject;
+        fetch('http://localhost:5000/googleSignIn', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name, email }),
+        })
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = '/';
+                    console.log('User data stored successfully');
+                    console.log('Login successful:', response.json());
+                    localStorage.setItem('loggedInUserGmail',JSON.stringify(userObject));
+
+                } else {
+                    console.error('Failed to store user data:', response.statusText);
+                }
+            })
+            .catch(error => {
+                console.error('Error storing user data:', error);
+            });
+    };
+
+    useEffect(() => {
+        window.google.accounts.id.initialize({
+            client_id: "199415080611-fl5dm04msdlivid1257gu4c7njj3tq8u.apps.googleusercontent.com",
+            callback: handleCallbackResponse
+        });
+        window.google.accounts.id.renderButton(
+            document.getElementById("signInDiv"),
+            { theme: "outline", size: "large" }
+        );
+    }, []);
+
     const handleLoginSubmit = async (e) => {
         e.preventDefault();
-
         try {
             const response = await fetch('http://localhost:5000/login', {
                 method: 'POST',
@@ -79,12 +143,21 @@ const LoginForm = () => {
                 },
                 body: JSON.stringify({ email, password }),
             });
-
+            if (rememberMe) {
+                localStorage.setItem('registeredEmail', email);
+                localStorage.setItem('registeredPassword', password);
+            } else {
+                localStorage.removeItem('registeredEmail');
+                localStorage.removeItem('registeredPassword');
+            }
             if (response.ok) {
                 const user = await response.json();
                 console.log('Login successful:', user);
-                // Perform further actions like setting user in state, redirecting, etc.
-                window.location.href = '/dashboard'; // Corrected redirection
+                localStorage.setItem('loggedInUserEmail',JSON.stringify(user));
+                window.location.href = '/';
+                if (rememberMe) {
+                    window.localStorage.setItem("isLoggedIn", true);
+                }
             } else {
                 console.error('Login failed:', response.statusText);
             }
@@ -95,19 +168,30 @@ const LoginForm = () => {
 
     const handleRegisterSubmit = async (e) => {
         e.preventDefault();
-
+        const existingUser = await checkExistingUser(email);
+        if (password !== confirmpassword) {
+            console.error('Password and confirm password do not match');
+            return;
+        }
+        if (existingUser) {
+            console.error('Email address already exists');
+            return;
+        }
         try {
+            // Encrypt the password using AES encryption
+            // const encryptedPassword = CryptoJS.AES.encrypt(password, 'secretKey').toString();
             const response = await fetch('http://localhost:5000/signup', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ fullname, email, password, confirmpassword, department }),
+                body: JSON.stringify({ fullname, email, password, confirmpassword }),
             });
-
             if (response.ok) {
                 console.log('Registration successful');
-                // Perform further actions like redirecting to login page, showing a success message, etc.
+                localStorage.setItem('registeredEmail', email);
+                localStorage.setItem('registeredPassword', password);
+                window.location.href = "/login";
             } else {
                 console.error('Registration failed:', response.statusText);
             }
@@ -115,33 +199,22 @@ const LoginForm = () => {
             console.error('Error during registration:', error);
         }
     };
-
-    const handleToggleRegister = () => {
-        setShowRegister((prevShowRegister) => !prevShowRegister);
+    
+    const checkExistingUser = async (email) => {
+        try {
+            const response = await fetch(`http://localhost:5000/checkUser?email=${email}`);
+            if (response.ok) {
+                const data = await response.json();
+                return data.exists;
+            } else {
+                console.error('Error checking existing user:', response.statusText);
+                return false;
+            }
+        } catch (error) {
+            console.error('Error checking existing user:', error);
+            return false;
+        }
     };
-
-
-    const handleDepartmentChange = (e) => {
-        setDepartment(e.target.value);
-    };
-
-    const handleconfirmpasswordChange = (e) => {
-        setConfirmPassword(e.target.value);
-    };
-
-    const handleFullNameChange = (e) => {
-        setFullName(e.target.value);
-    };
-
-    const handleToggleForgotPassword = () => {
-        setShowForgotPassword(!showForgotPassword);
-    };
-
-    const handleForgotPasswordSubmit = (e) => {
-        e.preventDefault();
-        // Add your forgot password logic here
-    };
-
     return (
         <div className="wrapper">
             <div className="formBox">
@@ -176,6 +249,8 @@ const LoginForm = () => {
                                     onChange={handlePasswordChange}
                                     placeholder="Password"
                                     className="inputField"
+                                    name="password" // Add the name attribute
+                                    id="password"
                                     required
                                 />
                             </div>
@@ -283,6 +358,8 @@ const LoginForm = () => {
                                     onChange={handlePasswordChange}
                                     placeholder="Password"
                                     className="inputField"
+                                    name="password" // Add the name attribute
+                                    id="password"
                                     required
                                 />
                             </div>
@@ -295,7 +372,7 @@ const LoginForm = () => {
                                     />
                                     Remember me
                                 </label>
-                                <a href="#" className="registerLink" onClick={handleToggleForgotPassword}>
+                                <a className="registerLink" onClick={() => (navigateToReset)}>
                                     Forgot Password?
                                 </a>
                             </div>

@@ -12,19 +12,41 @@ class ForgotPassword extends Component {
             error: '',
         };
     }
+   
 
-    handleSubmit = (e) => {
+    handleSubmit = async (e) => {
         e.preventDefault();
         const { email } = this.state;
-
+    
         if (!this.isValidEmail(email)) {
             this.setState({ error: 'Please enter a valid email address.' });
             return;
         }
-
-        // Perform password reset logic here (e.g., API call)
-        console.log('Forgot password request submitted for email:', email);
-
+    
+        try {
+            // Make an API call to initiate the password reset process
+            const response = await fetch('http://localhost:5000/forgotpassword', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            });
+    
+            if (response.ok) {
+                // Password reset request successful
+                console.log('Password reset request submitted for email:', email);
+                // Optionally, you can show a success message to the user
+            } else {
+                // Password reset request failed
+                console.error('Failed to submit password reset request');
+                // Optionally, you can show an error message to the user
+            }
+        } catch (error) {
+            console.error('Error submitting password reset request:', error);
+            // Optionally, you can show an error message to the user
+        }
+    
         // Reset state
         this.setState({ email: '', error: '' });
     };
@@ -48,11 +70,11 @@ class ForgotPassword extends Component {
                 </div>
                 <div style={{ padding: '30px' }}>
                     {error && <p style={{ color: 'red' }}>{error}</p>}
-                    <p>Enter the email you registered with, and we will send you a link to reset your password</p>
+                    <p>Answer the security Question</p>
                     <form className="form" onSubmit={this.handleSubmit}>
                         <div className="formGroup">
                             <label htmlFor="email" className="label">
-                                Email:
+                                where is ur birth place:
                             </label>
                             <input
                                 type="email"
